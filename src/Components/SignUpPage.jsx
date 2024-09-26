@@ -1,58 +1,46 @@
-import axios from 'axios'
-import { useFormik } from 'formik'
-import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import * as yup from 'yup'
+import axios from 'axios';
+import { useFormik } from 'formik';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import * as yup from 'yup';
 import { toast, Slide, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import ReactLoading from 'react-loading';
 
+// Update this to your deployed backend URL
+const API_BASE_URL = "https://urlshortener-backend-5dvn.onrender.com";
+
 const SignUpPage = () => {
     const [loading, setLoading] = useState(false);
-    const [isRegistered, setIsResgistered] = useState(false);
-
-    // Initialize the navigate function for redirecting
+    const [isRegistered, setIsRegistered] = useState(false);
     const navigate = useNavigate();
 
-    // Function to handle click event for returning to login page
     const handleLoginClick = () => {
-        navigate("/login")
-    }
+        navigate("/login");
+    };
 
-    // Set up formik for form handling and validation
     const formik = useFormik({
-
-        // Initial values
         initialValues: {
             email: '',
             password: '',
             firstName: '',
-            lastName: ''
+            lastName: '',
         },
-
-        // Validations
         validationSchema: yup.object({
-            firstName: yup.string()
-                .required('First name is required'),
-            lastName: yup.string()
-                .required('Last name is required'),
-            email: yup.string()
-                .email('Invalid email')
-                .required('Email is required'),
-            password: yup.string()
-                .required("Password is required")
-                .min(8, "Password should be min 8 characters")
+            firstName: yup.string().required('First name is required'),
+            lastName: yup.string().required('Last name is required'),
+            email: yup.string().email('Invalid email').required('Email is required'),
+            password: yup.string().required("Password is required").min(8, "Password should be at least 8 characters"),
         }),
-
-
-        onSubmit: (values) => { // Function to handle form submission
+        onSubmit: async (values) => {
             setLoading(true);
-            axios.post("/register", values).then(res => { // POST call
+            try {
+                const res = await axios.post(`${API_BASE_URL}/api/user/register`, values);
                 setLoading(false);
                 if (res.data.status) {
                     formik.resetForm();
-                    setIsResgistered(true);
-                    toast.success("User registered successfully", { // Notification
+                    setIsRegistered(true);
+                    toast.success("User registered successfully. Please check your email for verification.", {
                         position: "top-right",
                         autoClose: 5000,
                         hideProgressBar: false,
@@ -60,116 +48,128 @@ const SignUpPage = () => {
                         pauseOnHover: true,
                         draggable: true,
                         progress: undefined,
-                        transition: Slide // Use Slide for right-side animation
+                        transition: Slide,
+                    });
+                } else {
+                    toast.error(res.data.message || "User already registered", {
+                        position: "top-right",
+                        autoClose: 5000,
+                        hideProgressBar: false,
+                        closeOnClick: true,
+                        pauseOnHover: true,
+                        draggable: true,
+                        progress: undefined,
+                        transition: Slide,
                     });
                 }
-                else {
-                    toast.error("User already registered"); // Notification
-                }
-
-            }).catch(res => {
+            } catch (error) {
                 setLoading(false);
-                toast.error("Registration failed, Please try again later"); // Notification
-            })
+                console.error("Registration error:", error);
+                toast.error("Registration failed, please try again later", {
+                    position: "top-right",
+                    autoClose: 5000,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: true,
+                    progress: undefined,
+                    transition: Slide,
+                });
+            }
+        },
+    });
 
-        }
-    })
     return (
-        !isRegistered ?
-            (
-                <div className='vh-100 d-flex justify-content-center align-items-center bg-color'>
-                    <div className="outer-container">
-                        <p className='title'>Let's start</p>
-                        <p className='text1'>Please sign up or login to continue</p>
-                        <form action="" onSubmit={formik.handleSubmit}>
-                            <div className="input-container">
-                                {
-                                    formik.touched.firstName && formik.errors.firstName ?
-                                        <div className='erro-msg'>{formik.errors.firstName}</div> : null
-                                }
-                                <i class='bx bxs-user'></i>
-                                <input
-                                    type="text"
-                                    placeholder='First name'
-                                    {...formik.getFieldProps("firstName")}
-                                ></input>
-                            </div>
-                            <div className="input-container">
-                                {
-                                    formik.touched.lastName && formik.errors.lastName ?
-                                        <div className='erro-msg'>{formik.errors.lastName}</div> : null
-                                }
-                                <i class='bx bxs-user'></i>
-                                <input
-                                    type="text"
-                                    placeholder='Last name'
-                                    {...formik.getFieldProps("lastName")}
-                                ></input>
-                            </div>
-                            <div className="input-container">
-                                {
-                                    formik.touched.email && formik.errors.email ?
-                                        <div className='erro-msg'>{formik.errors.email}</div> : null
-                                }
-                                <i className='bx bx-envelope'></i>
-                                <input
-                                    type="email"
-                                    placeholder='Email'
-                                    {...formik.getFieldProps("email")}
-                                ></input>
-                            </div>
-                            <div className="input-container">
-                                {
-                                    formik.touched.password && formik.errors.password ?
-                                        <div className='erro-msg'>{formik.errors.password}</div> : null
-                                }
-                                <i className='bx bx-lock-alt'></i>
-                                <input
-                                    type="password"
-                                    placeholder='Password'
-                                    {...formik.getFieldProps("password")}
-                                />
-                            </div>
-                            <button className='custom-btn' type="submit">Sign Up</button>
-                        </form>
-                        <p className='d-flex justify-content-center g-2 text2'>Already Have An Account? <span onClick={handleLoginClick}>Login</span></p>
-                    </div>
-
-                    {/* Toast container for displaying notifications */}
-
-                    <ToastContainer
-                        position="top-right"
-                        autoClose={5000}
-                        hideProgressBar={false}
-                        newestOnTop={false}
-                        closeOnClick
-                        rtl={false}
-                        pauseOnFocusLoss
-                        draggable
-                        pauseOnHover
-                    />
-                    {
-                        loading &&
-                        <div className="loading-container">
-                            <ReactLoading type="spinningBubbles" color="#ed7632" />
+        !isRegistered ? (
+            <div className='vh-100 d-flex justify-content-center align-items-center bg-color'>
+                <div className="outer-container">
+                    <p className='title'>Let's start</p>
+                    <p className='text1'>Please sign up or login to continue</p>
+                    <form onSubmit={formik.handleSubmit}>
+                        <div className="input-container">
+                            {formik.touched.firstName && formik.errors.firstName ? (
+                                <div className='erro-msg'>{formik.errors.firstName}</div>
+                            ) : null}
+                            <i className='bx bxs-user'></i>
+                            <input
+                                type="text"
+                                placeholder='First name'
+                                {...formik.getFieldProps("firstName")}
+                            />
                         </div>
-                    }
+                        <div className="input-container">
+                            {formik.touched.lastName && formik.errors.lastName ? (
+                                <div className='erro-msg'>{formik.errors.lastName}</div>
+                            ) : null}
+                            <i className='bx bxs-user'></i>
+                            <input
+                                type="text"
+                                placeholder='Last name'
+                                {...formik.getFieldProps("lastName")}
+                            />
+                        </div>
+                        <div className="input-container">
+                            {formik.touched.email && formik.errors.email ? (
+                                <div className='erro-msg'>{formik.errors.email}</div>
+                            ) : null}
+                            <i className='bx bx-envelope'></i>
+                            <input
+                                type="email"
+                                placeholder='Email'
+                                {...formik.getFieldProps("email")}
+                            />
+                        </div>
+                        <div className="input-container">
+                            {formik.touched.password && formik.errors.password ? (
+                                <div className='erro-msg'>{formik.errors.password}</div>
+                            ) : null}
+                            <i className='bx bx-lock-alt'></i>
+                            <input
+                                type="password"
+                                placeholder='Password'
+                                {...formik.getFieldProps("password")}
+                            />
+                        </div>
+                        <button className='custom-btn' type="submit">Sign Up</button>
+                    </form>
+                    <p className='d-flex justify-content-center g-2 text2'>
+                        Already Have An Account? <span onClick={handleLoginClick}>Login</span>
+                    </p>
                 </div>
 
-            ) :
+                <ToastContainer
+                    position="top-right"
+                    autoClose={5000}
+                    hideProgressBar={false}
+                    newestOnTop={false}
+                    closeOnClick
+                    rtl={false}
+                    pauseOnFocusLoss
+                    draggable
+                    pauseOnHover
+                />
 
-            (
-                <div className='vh-100 d-flex justify-content-center align-items-center bg-color'>
-                    <div className="outer-container">
-                        <p className='title'>Verify your email</p>
-                        <p className='forgot-password-text'>We have send a verification link to your email kindly verify to Activate your account</p>
-
-                        <hr className='line' />
-                        <p className='d-flex justify-content-center mt-0 p-0 text2 login'><span onClick={handleLoginClick}>Return to Login page</span></p>
+                {loading && (
+                    <div className="loading-container">
+                        <ReactLoading type="spinningBubbles" color="#ed7632" />
                     </div>
+                )}
+            </div>
+        ) : (
+            <div className='vh-100 d-flex justify-content-center align-items-center bg-color'>
+                <div className="outer-container">
+                    <p className='title'>Verify your email</p>
+                    <p className='forgot-password-text'>
+                        We have sent a verification link to your email. Kindly verify to activate your account.
+                    </p>
+                    <hr className='line' />
+                    <p className='d-flex justify-content-center mt-0 p-0 text2 login'>
+                        <span onClick={handleLoginClick}>Return to Login page</span>
+                    </p>
                 </div>
-            )
-    )
-}
+            </div>
+        )
+    );
+};
 
-export default SignUpPage
+export default SignUpPage;
